@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dyson Swarm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05070e;
+    --panel: rgba(16, 23, 41, 0.82);
+    --panel-hover: rgba(22, 31, 56, 0.92);
+    --line: #1f2b47;
+    --line-bright: #334670;
+    --text: #eef2ff;
+    --dim: #8b9bb8;
+    --gold: #ffbe3d;
+    --gold-glow: rgba(255, 190, 61, 0.25);
+    --ok: #38f2c7;
+    --ok-bg: rgba(56, 242, 199, 0.14);
+    --hot: #ff5c6c;
+    --cool: #56b8ff;
+    --haul: #b79bff;
+    --dm: #c084fc;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse 80% 45% at 50% -10%, rgba(255, 175, 45, 0.16), transparent 70%),
+      radial-gradient(ellipse 60% 40% at 85% 20%, rgba(86, 184, 255, 0.07), transparent 65%),
+      radial-gradient(1px 1px at 25px 35px, rgba(255, 255, 255, 0.55), transparent),
+      radial-gradient(1px 1px at 95px 120px, rgba(255, 230, 180, 0.45), transparent),
+      radial-gradient(1.5px 1.5px at 175px 65px, rgba(255, 255, 255, 0.4), transparent),
+      radial-gradient(1px 1px at 260px 190px, rgba(160, 210, 255, 0.5), transparent),
+      radial-gradient(1px 1px at 320px 40px, rgba(255, 255, 255, 0.35), transparent);
+    background-size: 100% 100%, 100% 100%, 350px 240px, 350px 240px, 350px 240px, 350px 240px, 350px 240px;
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--font-sans);
+    line-height: 1.4;
+  }
+  main { max-width: 660px; margin: 0 auto; padding: 18px 14px 40px; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  h1 {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-shadow: 0 0 18px rgba(255, 190, 61, 0.35);
+  }
+  .tier-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--gold);
+    background: rgba(255, 190, 61, 0.1);
+    border: 1px solid rgba(255, 190, 61, 0.3);
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 12px;
+    margin: 0 0 10px;
+    color: var(--dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .hud {
+    background: var(--panel);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 16px 16px;
+    text-align: center;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  #energy {
+    font-family: var(--font-mono);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--gold);
+    text-shadow: 0 0 22px var(--gold-glow);
+    letter-spacing: -0.02em;
+  }
+  #eps {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--dim);
+    margin-top: 4px;
+  }
+  .collect-wrap { position: relative; margin-top: 14px; }
+  #collect {
+    width: 100%;
+    padding: 14px 16px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffd466 0%, #ffaa2b 100%);
+    color: #1a1100;
+    cursor: pointer;
+    box-shadow: 0 4px 18px rgba(255, 180, 50, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    transition: transform 0.08s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  #collect:hover { filter: brightness(1.05); box-shadow: 0 6px 22px rgba(255, 180, 50, 0.38); }
+  #collect:active { transform: scale(0.975); }
+  .float-num {
+    position: absolute;
+    pointer-events: none;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff3d1;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 10px var(--gold);
+    transform: translate(-50%, -50%);
+    animation: floatUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    z-index: 10;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translate(-50%, -20%) scale(0.9); }
+    100% { opacity: 0; transform: translate(-50%, -44px) scale(1.08); }
+  }
+  .heat { margin-top: 16px; text-align: left; background: rgba(7, 11, 22, 0.55); padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.04); }
+  .heathead { display: flex; justify-content: space-between; font-size: 12px; color: var(--dim); margin-bottom: 6px; font-weight: 500; }
+  #heattext { font-family: var(--font-mono); color: var(--text); }
+  .heatbar { position: relative; height: 12px; background: #070a14; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  #heatfill { height: 100%; width: 0; background: linear-gradient(90deg, #2dd4bf, var(--ok)); transition: width 0.15s linear, background 0.3s; border-radius: 999px; }
+  #heatfill.warm { background: linear-gradient(90deg, #f59e0b, var(--gold)); }
+  #heatfill.hot { background: linear-gradient(90deg, #f43f5e, var(--hot)); }
+  #heatmark { position: absolute; top: 0; bottom: 0; width: 2px; background: #ffffff; opacity: 0.85; box-shadow: 0 0 6px #fff; }
+  #heatflow { font-family: var(--font-mono); font-size: 11.5px; color: var(--dim); margin-top: 6px; }
+  #heatstatus { font-size: 12px; margin-top: 3px; color: var(--ok); font-weight: 500; }
+  #heatstatus.hot { color: var(--hot); }
+  .modes { display: flex; gap: 8px; margin: 16px 0 10px; }
+  .modes button {
+    flex: 1;
+    padding: 9px 10px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--panel);
+    color: var(--dim);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    touch-action: manipulation;
+  }
+  .modes button.on {
+    color: var(--gold);
+    border-color: var(--gold);
+    background: rgba(255, 190, 61, 0.1);
+    box-shadow: 0 0 12px rgba(255, 190, 61, 0.12);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  }
+  .row.cooler { border-left: 3px solid var(--cool); }
+  .row.bought { animation: rowPulse 0.35s ease-out; }
+  @keyframes rowPulse {
+    0% { border-color: var(--ok); background: var(--ok-bg); transform: scale(1.01); }
+    100% { border-color: var(--line); background: var(--panel); transform: scale(1); }
+  }
+  .row .info { min-width: 0; }
+  .row .name { font-family: var(--font-display); font-weight: 600; font-size: 15px; color: var(--text); }
+  .row .meta { color: var(--dim); font-size: 12px; margin-top: 3px; line-height: 1.35; }
+  .row .own {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    min-width: 42px;
+    text-align: right;
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+  .row .own.bump { color: var(--ok); transform: scale(1.22); }
+  .row button, .up button {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--ok);
+    color: #03221c;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    min-width: 126px;
+    text-align: center;
+    transition: transform 0.08s ease, filter 0.15s ease, background 0.15s ease;
+    touch-action: manipulation;
+  }
+  .row button:hover:not(:disabled), .up button:hover:not(:disabled) { filter: brightness(1.08); }
+  .row button:active:not(:disabled), .up button:active:not(:disabled) { transform: scale(0.96); }
+  .row button:disabled, .up button:disabled {
+    background: #1a233a;
+    color: #5c6c8f;
+    border: 1px solid #253354;
+    cursor: not-allowed;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 15px;
+    margin-top: 14px;
+  }
+  .stat { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+  .stat:last-child { border-bottom: 0; }
+  .stat span:first-child { color: var(--dim); }
+  .stat span:last-child { font-family: var(--font-mono); font-weight: 500; }
+  .ach { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--line); opacity: 0.45; transition: opacity 0.25s; }
+  .ach:first-of-type { border-top: 0; }
+  .ach.done { opacity: 1; }
+  .ach .aname { font-family: var(--font-display); font-weight: 600; }
+  .ach .adesc { color: var(--dim); font-size: 12px; margin-top: 1px; }
+  .ach .abonus { font-family: var(--font-mono); font-size: 12px; color: var(--dim); white-space: nowrap; }
+  .ach.done .abonus { color: var(--ok); font-weight: 600; }
+  .foot { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .foot button {
+    flex: 1;
+    min-width: 110px;
+    padding: 10px 12px;
+    background: rgba(16, 23, 41, 0.6);
+    color: var(--dim);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .foot button:hover { color: var(--text); border-color: var(--line-bright); }
+  #msg { color: var(--ok); text-align: center; min-height: 22px; margin-top: 10px; font-size: 13px; font-weight: 500; }
+  .row.hauler { border-left: 3px solid var(--haul); }
+  .group { font-family: var(--font-display); font-size: 11px; color: var(--dim); letter-spacing: 0.12em; text-transform: uppercase; margin: 16px 2px 6px; }
+  .logi { margin-top: 10px; text-align: left; background: rgba(7, 11, 22, 0.55); padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.04); font-size: 12px; color: var(--dim); }
+  .logi b { color: var(--haul); font-weight: 600; }
+  #logistatus { font-family: var(--font-mono); color: var(--text); float: right; }
+  #logitext { font-family: var(--font-mono); font-size: 11.5px; margin-top: 4px; }
+  .up { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+  .up .uname { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+  .up .ueffect { color: var(--ok); font-size: 12.5px; font-weight: 600; margin-top: 2px; }
+  .up .udesc { color: var(--dim); font-size: 12px; margin-top: 1px; }
+  .up.dm .ueffect { color: var(--dm); }
+  .up.dm button { background: var(--dm); color: #1d0a33; }
+  .note { color: var(--dim); font-size: 12px; margin-top: 8px; line-height: 1.4; }
+  #dmtext { font-size: 13px; line-height: 1.5; }
+  #dmtext b { color: var(--dm); font-family: var(--font-mono); }
+  #ascend { width: 100%; margin-top: 10px; padding: 12px; border: 0; border-radius: 10px; background: linear-gradient(135deg, #d8b4fe, #a855f7); color: #1d0a33; font-family: var(--font-display); font-weight: 700; font-size: 14px; cursor: pointer; }
+  #ascend:disabled { background: #1a233a; color: #5c6c8f; border: 1px solid #253354; cursor: not-allowed; }
+
+  @media (max-width: 520px) {
+    main { padding: 12px 10px 32px; }
+    #energy { font-size: 30px; }
+    .row {
+      grid-template-columns: 1fr auto;
+      gap: 8px 10px;
+      padding: 12px;
+    }
+    .row .own {
+      font-size: 18px;
+      min-width: 0;
+    }
+    .up { grid-template-columns: 1fr; }
+    .up button { width: 100%; }
+    .row button {
+      grid-column: 1 / -1;
+      width: 100%;
+      padding: 11px 12px;
+      font-size: 13px;
+    }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="top-bar">
+    <h1>Dyson Swarm</h1>
+    <span class="tier-badge" id="tier-badge"></span>
+  </div>
+  <div class="hud">
+    <div id="energy">0 W</div>
+    <div id="eps">0 W/s</div>
+    <div class="collect-wrap" id="collect-wrap">
+      <button id="collect">Collect Sunlight</button>
+    </div>
+    <div class="heat">
+      <div class="heathead"><span>Thermal Load</span><span id="heattext"></span></div>
+      <div class="heatbar"><div id="heatfill"></div><div id="heatmark"></div></div>
+      <div id="heatflow"></div>
+      <div id="heatstatus"></div>
+    </div>
+    <div class="logi">
+      <div><b>Supply Lines</b><span id="logistatus"></span></div>
+      <div id="logitext"></div>
+    </div>
+  </div>
+  <div class="modes" id="modes"></div>
+  <div id="list"></div>
+  <div class="panel">
+    <h2>Upgrades</h2>
+    <div class="note" style="margin:0 0 4px">One-time purchases. The green line on each one says exactly what it changes.</div>
+    <div id="upgrades"></div>
+    <div class="note" id="upnote"></div>
+  </div>
+  <div class="panel">
+    <h2>Ascend</h2>
+    <div id="dmtext"></div>
+    <button id="ascend"></button>
+    <div class="note">Ascending resets energy, buildings, heat, and upgrades. You keep Dark Matter, Dark Matter upgrades, achievements, and stats.</div>
+    <div id="dmups"></div>
+  </div>
+  <div class="panel">
+    <h2>Telemetry</h2>
+    <div id="stats"></div>
+  </div>
+  <div class="panel">
+    <h2>Achievements</h2>
+    <div id="achs"></div>
+  </div>
+  <div class="foot">
+    <button id="export">Export save</button>
+    <button id="import">Import save</button>
+    <button id="reset">Hard reset</button>
+  </div>
+  <div id="msg"></div>
+</main>
+
+<script>
+// =====================================================================
+// DATA: all game content lives here. Add content by adding data.
+// =====================================================================
+const SAVE_KEY = 'dysonswarm_save';
+const SAVE_VERSION = 3;
+const TIER_LABEL = 'TIER 3 · LOGISTICS';   // header badge, update when a new tier ships
+const GROWTH = 1.15;                    // cost multiplier per owned building
+const OFFLINE_CAP_SECONDS = 8 * 3600;   // max offline progress
+const MILESTONES = [10, 25, 50, 100, 200, 300, 400]; // each one doubles that building's output (or a radiator's cooling and capacity)
+
+// Heat tuning. Heat is a stockpile: it rises by (heat made - cooling) every second.
+// Up to capacity nothing happens. Above capacity, output is throttled on a smooth
+// curve from 100% (at capacity) down to minThrottle (at capacity * maxRatio).
+// Throttled buildings also make less heat, so the swarm settles at a stable level.
+const HEAT = {
+  baseCooling: 5,      // heat removed per second with no radiators
+  baseCapacity: 100,   // heat capacity with no radiators
+  minThrottle: 0.25,   // output never drops below this fraction (0.25 = 25%)
+  maxRatio: 2,         // heat cannot go above capacity * maxRatio
+  curve: 1,            // 1 = straight ramp. Higher = output drops faster right after capacity
+  maxStep: 1,          // seconds per simulation step (keeps offline progress accurate)
+};
+
+// Building fields:
+//   rate: W/s each          heat: heat/s each (not affected by milestones)
+//   cool: heat/s removed each    cap: heat capacity added each   (radiators)
+//   haul: cargo/s of transport each                              (logistics)
+//   feed: supply line. Each one builds `rate` units/s of building `to` for free.
+//         Every unit built needs `cargo` transport. With too little transport,
+//         all supply lines slow down by the same fraction. No transport = no building.
+//         Supplied units produce energy and heat like bought ones, but they do not
+//         raise the price and do not count toward the x2 milestones.
+const BUILDINGS = [
+  { id:'collector',    name:'Solar Collector',      desc:'A panel on one rooftop.',          cost:10,      rate:0.5,   heat:0.5 },
+  { id:'mirror',       name:'Orbital Mirror',       desc:'Reflects sunlight to the surface.', cost:120,     rate:4,     heat:5 },
+  { id:'satellite',    name:'Swarm Satellite',      desc:'The first real swarm unit.',        cost:1400,    rate:32,    heat:45 },
+  { id:'driver',       name:'Mass Driver',          desc:'Launches satellites faster.',       cost:15000,   rate:260,   heat:400,   feed:{ to:'satellite', rate:0.01,   cargo:1 } },
+  { id:'miner',        name:'Asteroid Miner',       desc:'Raw material for more swarm.',      cost:170000,  rate:2100,  heat:3500,  feed:{ to:'driver',    rate:0.002,  cargo:10 } },
+  { id:'disassembler', name:'Mercury Disassembler', desc:'Takes a planet apart for parts.',   cost:2e6,     rate:17000, heat:30000, feed:{ to:'miner',     rate:0.0005, cargo:100 } },
+  { id:'fin',          name:'Radiator Fin',         desc:'Bleeds heat into space.',           cost:40,      rate:0, cool:5,     cap:100 },
+  { id:'heatpipe',     name:'Heat Pipe Array',      desc:'Moves heat to the dark side.',      cost:4000,    rate:0, cool:300,   cap:6000 },
+  { id:'droplet',      name:'Droplet Radiator',     desc:'Sprays molten metal to shed heat.', cost:600000,  rate:0, cool:30000, cap:600000 },
+  { id:'tug',          name:'Cargo Tug',            desc:'Hauls new units down supply lines.', cost:50000,   rate:0, haul:0.1 },
+  { id:'freighter',    name:'Bulk Freighter',       desc:'A tug the size of a city.',          cost:5e6,     rate:0, haul:15 },
+];
+
+// Effects are shared by UPGRADES and DM_UPGRADES. Every effect multiplies one thing:
+//   { type:'rate', target:'collector', mult:3 }  one building's energy output
+//   { type:'rate', mult:2 }                      all energy output (no target)
+//   { type:'click', mult:5 }                     click power
+//   { type:'cool', mult:2 }                      all cooling
+//   { type:'heat', mult:0.8 }                    heat made (below 1 = less heat)
+//   { type:'haul', mult:2 }                      transport capacity
+// The text players see is built from the effect, so it always matches what it does.
+const EFFECT_LABEL = { rate:'energy output', click:'Click power', cool:'Cooling', heat:'Heat made', haul:'Transport capacity' };
+
+// One-time upgrades bought with energy. Lost on Ascend.
+const UPGRADES = [
+  { id:'lens',      name:'Focusing Lens',        desc:'A bigger lens for your own hands.',     cost:500,    effect:{ type:'click', mult:5 } },
+  { id:'col1',      name:'Anti-Glare Coating',   desc:'Panels stop wasting light.',            cost:1000,   effect:{ type:'rate', target:'collector', mult:3 } },
+  { id:'mir1',      name:'Adaptive Optics',      desc:'Mirrors that stay on target.',          cost:10000,  effect:{ type:'rate', target:'mirror', mult:3 } },
+  { id:'fins1',     name:'Graphene Fins',        desc:'Thinner fins, more surface.',           cost:25000,  effect:{ type:'cool', mult:2 } },
+  { id:'sat1',      name:'Thin-Film Sails',      desc:'Lighter satellites catch more.',        cost:120000, effect:{ type:'rate', target:'satellite', mult:3 } },
+  { id:'coat1',     name:'Reflective Coating',   desc:'Bounce waste light away.',              cost:200000, effect:{ type:'heat', mult:0.8 } },
+  { id:'haul1',     name:'Ion Drives',           desc:'Tugs that never stop burning.',         cost:750000, effect:{ type:'haul', mult:2 } },
+  { id:'drv1',      name:'Superconducting Rails',desc:'Launch harder.',                        cost:1.5e6,  effect:{ type:'rate', target:'driver', mult:3 } },
+  { id:'all1',      name:'Swarm Coordination',   desc:'Every unit talks to every other.',      cost:5e6,    effect:{ type:'rate', mult:2 } },
+  { id:'min1',      name:'Autonomous Drills',    desc:'Miners that fix themselves.',           cost:2e7,    effect:{ type:'rate', target:'miner', mult:3 } },
+  { id:'fins2',     name:'Liquid Metal Loops',   desc:'Pump the heat out faster.',             cost:5e7,    effect:{ type:'cool', mult:2 } },
+  { id:'dis1',      name:'Core Tap',             desc:'Go deeper into Mercury.',               cost:2.5e8,  effect:{ type:'rate', target:'disassembler', mult:3 } },
+  { id:'haul2',     name:'Orbital Rings',        desc:'Cargo rides the ring for free.',        cost:1e9,    effect:{ type:'haul', mult:3 } },
+  { id:'all2',      name:'Hive Mind',            desc:'The swarm thinks as one.',              cost:1e10,   effect:{ type:'rate', mult:2 } },
+];
+const UPGRADES_SHOWN = 5; // how many unbought upgrades are listed at once (cheapest first)
+
+// Ascend (prestige). Dark Matter gained = floor((energy made this run / base) ^ power).
+// Every Dark Matter ever earned adds bonusPer to all energy output (0.05 = +5%).
+// Spending Dark Matter on upgrades does not remove that bonus.
+const PRESTIGE = { base:1e8, power:0.5, bonusPer:0.05 };
+
+// Permanent upgrades bought with Dark Matter. Kept on Ascend.
+// Cost of the next level = cost * growth^level. The effect applies once per level.
+const DM_UPGRADES = [
+  { id:'sink',   name:'Cold Matter Sink',  desc:'Dark matter that soaks up waste heat.', cost:1, growth:2, max:5, effect:{ type:'heat', mult:0.9 } },
+  { id:'void',   name:'Void Radiators',    desc:'Radiate into somewhere else.',          cost:2, growth:2, max:5, effect:{ type:'cool', mult:1.25 } },
+  { id:'lanes',  name:'Gravity Lanes',     desc:'Cargo falls where you want it.',        cost:3, growth:2, max:5, effect:{ type:'haul', mult:1.5 } },
+];
+
+// Achievements. check() returns true when earned. bonus.type is one of:
+//   'prod' (energy output), 'click' (click power), 'cool' (cooling). mult stacks by multiplying.
+const BONUS_LABEL = { prod:'energy output', click:'click power', cool:'cooling' };
+const ACHIEVEMENTS = [
+  { id:'hands',   name:'Hands On',        desc:'Collect sunlight by hand 50 times.', check:() => state.clicks >= 50,                 bonus:{ type:'click', mult:1.25 } },
+  { id:'swarm',   name:'Small Swarm',     desc:'Own 50 energy buildings.',           check:() => ownedCount(b => b.rate > 0) >= 50,  bonus:{ type:'prod',  mult:1.05 } },
+  { id:'cool',    name:'Cool Head',       desc:'Own 10 radiators.',                  check:() => ownedCount(b => b.cool > 0) >= 10,  bonus:{ type:'cool',  mult:1.10 } },
+  { id:'mega',    name:'Megawatt',        desc:'Generate 1M W in total.',            check:() => state.total >= 1e6,                 bonus:{ type:'prod',  mult:1.05 } },
+  { id:'cracker', name:'Planet Cracker',  desc:'Own a Mercury Disassembler.',        check:() => state.owned.disassembler >= 1,      bonus:{ type:'prod',  mult:1.10 } },
+];
+
+// =====================================================================
+// STATE
+// =====================================================================
+let state = newState();
+let buyMode = 1; // 1, 10, 100, or 'max'
+
+function newState() {
+  const owned = {}, made = {};
+  for (const b of BUILDINGS) { owned[b.id] = 0; made[b.id] = 0; }
+  // owned: bought units. made: units built by supply lines (can be fractional).
+  // total: energy made all time. run: energy made since the last Ascend.
+  return { v:SAVE_VERSION, energy:0, total:0, run:0, owned, made, heat:0, upgrades:{},
+           dm:0, dmTotal:0, dmUp:{}, ascends:0, played:0, clicks:0, ach:{}, last:Date.now() };
+}
+
+// =====================================================================
+// ENGINE
+// =====================================================================
+const BY_ID = {};
+for (const b of BUILDINGS) BY_ID[b.id] = b;
+
+const SUFFIX = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+function fmt(n) {
+  if (!isFinite(n)) return '∞';
+  if (n > 0 && n < 0.01) return String(+n.toPrecision(2));
+  if (n < 1000) return n < 10 && n % 1 !== 0 ? n.toFixed(2) : n < 100 && n % 1 !== 0 ? n.toFixed(1) : Math.floor(n).toString();
+  const tier = Math.floor(Math.log10(n) / 3);
+  if (tier >= SUFFIX.length) return n.toExponential(2).replace('+', '');
+  return (n / Math.pow(1000, tier)).toFixed(2) + SUFFIX[tier];
+}
+function fmtTime(sec) {
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  return (h ? h + 'h ' : '') + (h || m ? m + 'm ' : '') + s + 's';
+}
+
+function milestoneMult(count) {
+  let m = 1;
+  for (const t of MILESTONES) if (count >= t) m *= 2;
+  return m;
+}
+function nextMilestone(count) {
+  for (const t of MILESTONES) if (count < t) return t;
+  return null;
+}
+// Units of a building that are working: bought plus built by supply lines.
+function count(b) { return state.owned[b.id] + (state.made[b.id] || 0); }
+function ownedCount(filter) {
+  let n = 0;
+  for (const b of BUILDINGS) if (!filter || filter(b)) n += Math.floor(count(b));
+  return n;
+}
+
+// ---- Upgrades and Dark Matter ----
+// Combined multiplier of one effect type from bought upgrades and Dark Matter upgrades.
+// For 'rate', pass a building id to get that building's upgrades plus the all-building ones.
+function effectMult(type, target) {
+  let m = 1;
+  for (const u of UPGRADES) {
+    const e = u.effect;
+    if (state.upgrades[u.id] && e.type === type && (!e.target || e.target === target)) m *= e.mult;
+  }
+  for (const d of DM_UPGRADES) {
+    const e = d.effect, lvl = state.dmUp[d.id] || 0;
+    if (lvl > 0 && e.type === type && (!e.target || e.target === target)) m *= Math.pow(e.mult, lvl);
+  }
+  return m;
+}
+function buyUpgrade(u) {
+  if (state.upgrades[u.id] || state.energy < u.cost) return false;
+  state.energy -= u.cost;
+  state.upgrades[u.id] = true;
+  return true;
+}
+function dmMult() { return 1 + state.dmTotal * PRESTIGE.bonusPer; }
+function dmGain() { return Math.floor(Math.pow(state.run / PRESTIGE.base, PRESTIGE.power)); }
+function dmCost(d) { return Math.ceil(d.cost * Math.pow(d.growth, state.dmUp[d.id] || 0)); }
+function buyDmUpgrade(d) {
+  const lvl = state.dmUp[d.id] || 0, c = dmCost(d);
+  if (lvl >= d.max || state.dm < c) return false;
+  state.dm -= c;
+  state.dmUp[d.id] = lvl + 1;
+  return true;
+}
+// Reset the run for Dark Matter. Keeps Dark Matter, its upgrades, achievements, and stats.
+function ascend() {
+  const g = dmGain();
+  if (g < 1) return false;
+  const keep = { dm:state.dm + g, dmTotal:state.dmTotal + g, dmUp:state.dmUp, ascends:state.ascends + 1,
+                 ach:state.ach, played:state.played, clicks:state.clicks, total:state.total };
+  state = Object.assign(newState(), keep);
+  return true;
+}
+
+// Achievement bonuses: product of every earned bonus of one type.
+function achMult(type) {
+  let m = 1;
+  for (const a of ACHIEVEMENTS) if (state.ach[a.id] && a.bonus.type === type) m *= a.bonus.mult;
+  return m;
+}
+// Marks newly earned achievements and returns their names.
+function checkAchievements() {
+  const earned = [];
+  for (const a of ACHIEVEMENTS) {
+    if (!state.ach[a.id] && a.check()) { state.ach[a.id] = true; earned.push(a.name); }
+  }
+  return earned;
+}
+
+// ---- Heat ----
+function heatGen() {            // heat per second at full output
+  let s = 0;
+  for (const b of BUILDINGS) s += (b.heat || 0) * count(b);
+  return s * effectMult('heat');
+}
+function heatCool() {           // heat removed per second
+  let s = HEAT.baseCooling;
+  for (const b of BUILDINGS) { const n = state.owned[b.id]; s += (b.cool || 0) * n * milestoneMult(n); }
+  return s * achMult('cool') * effectMult('cool');
+}
+function heatCapacity() {
+  let s = HEAT.baseCapacity;
+  for (const b of BUILDINGS) { const n = state.owned[b.id]; s += (b.cap || 0) * n * milestoneMult(n); }
+  return s;
+}
+// Output multiplier for a given heat level: 1 up to capacity, then a smooth ramp down to minThrottle.
+function throttleAt(heat) {
+  const r = heat / heatCapacity();
+  if (r <= 1) return 1;
+  const x = Math.min(1, (r - 1) / (HEAT.maxRatio - 1));
+  return HEAT.minThrottle + (1 - HEAT.minThrottle) * Math.pow(1 - x, HEAT.curve);
+}
+function throttle() { return throttleAt(state.heat); }
+// The heat level the swarm settles at with the current buildings.
+function equilibriumHeat() {
+  const g = heatGen(), c = heatCool(), cap = heatCapacity();
+  if (g <= c) return 0;
+  const t = c / g; // throttle at which heat made equals cooling
+  if (t <= HEAT.minThrottle) return cap * HEAT.maxRatio;
+  const x = 1 - Math.pow((t - HEAT.minThrottle) / (1 - HEAT.minThrottle), 1 / HEAT.curve);
+  return cap * (1 + x * (HEAT.maxRatio - 1));
+}
+function stepHeat(dt) {
+  const target = equilibriumHeat();
+  const net = heatGen() * throttle() - heatCool();
+  let h = state.heat + net * dt;
+  // Heat moves toward its settle point and never overshoots it, so big steps stay stable.
+  if (state.heat <= target) h = Math.min(Math.max(h, state.heat), target);
+  else h = Math.max(Math.min(h, state.heat), target);
+  state.heat = h;
+}
+
+// ---- Logistics (supply lines) ----
+function haulCapacity() {       // cargo per second the transport fleet can move
+  let s = 0;
+  for (const b of BUILDINGS) { const n = state.owned[b.id]; s += (b.haul || 0) * n * milestoneMult(n); }
+  return s * effectMult('haul');
+}
+function feedDemand() {         // cargo per second needed to run every supply line at full speed
+  let s = 0;
+  for (const b of BUILDINGS) if (b.feed) s += count(b) * b.feed.rate * b.feed.cargo;
+  return s;
+}
+function feedEfficiency() {     // 0 to 1: the share of supply line demand that transport can carry
+  const d = feedDemand();
+  return d > 0 ? Math.min(1, haulCapacity() / d) : 0;
+}
+function stepFeed(dt) {
+  const k = feedEfficiency() * throttle() * dt; // overheating slows supply lines too
+  if (k <= 0) return;
+  const add = {};
+  for (const b of BUILDINGS) if (b.feed) add[b.feed.to] = (add[b.feed.to] || 0) + count(b) * b.feed.rate * k;
+  for (const id in add) state.made[id] = (state.made[id] || 0) + add[id];
+}
+
+function buildingRate(b) {
+  return (b.rate || 0) * count(b) * milestoneMult(state.owned[b.id]) * effectMult('rate', b.id);
+}
+function rawRate() {            // output before heat throttling
+  let s = 0;
+  for (const b of BUILDINGS) s += buildingRate(b);
+  return s * achMult('prod') * dmMult();
+}
+function totalRate() { return rawRate() * throttle(); }
+function clickPower() { return (1 + totalRate() * 0.01) * achMult('click') * effectMult('click'); }
+
+// Cost of buying n more of building b, using the geometric series.
+function costFor(b, n) {
+  const owned = state.owned[b.id];
+  return b.cost * Math.pow(GROWTH, owned) * (Math.pow(GROWTH, n) - 1) / (GROWTH - 1);
+}
+function maxAffordable(b) {
+  const base = b.cost * Math.pow(GROWTH, state.owned[b.id]);
+  let n = Math.max(0, Math.floor(Math.log(state.energy * (GROWTH - 1) / base + 1) / Math.log(GROWTH)));
+  while (n > 0 && costFor(b, n) > state.energy) n--; // guard against float error
+  return n;
+}
+function amountFor(b) {
+  return buyMode === 'max' ? Math.max(1, maxAffordable(b)) : buyMode;
+}
+function buy(b) {
+  const n = amountFor(b);
+  const c = costFor(b, n);
+  if (state.energy < c) return;
+  state.energy -= c;
+  state.owned[b.id] += n;
+}
+function click() {
+  const g = clickPower();
+  state.energy += g;
+  state.total += g;
+  state.run += g;
+  state.clicks++;
+}
+function tick(dt) {
+  // Simulate in small steps while heat or supply lines are still changing things.
+  // Once heat has settled and no supply line is running, the rest of dt is one step.
+  // Long offline stretches use bigger steps so loading stays fast.
+  const maxStep = Math.max(HEAT.maxStep, dt / 5000);
+  let left = dt;
+  while (left > 0) {
+    const settled = state.heat === equilibriumHeat() && feedEfficiency() === 0;
+    const step = settled ? left : Math.min(left, maxStep);
+    const gain = totalRate() * step;
+    state.energy += gain;
+    state.total += gain;
+    state.run += gain;
+    stepHeat(step);
+    stepFeed(step);
+    left -= step;
+  }
+}
+
+// =====================================================================
+// SAVE
+// =====================================================================
+function save() {
+  state.last = Date.now();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+function num(x, fallback) { return typeof x === 'number' && isFinite(x) ? x : fallback; }
+function migrate(s) {
+  const from = s.v || 1;
+  const fresh = newState();
+  const out = Object.assign({}, fresh, s);
+  // Start from the full default list so buildings added in newer versions get 0.
+  out.owned = Object.assign({}, fresh.owned, s.owned || {});
+  for (const id in out.owned) out.owned[id] = Math.max(0, num(out.owned[id], 0));
+
+  // v1 -> v2: heat system, stats, achievements.
+  if (from < 2) {
+    out.heat = 0;
+    out.played = 0;
+    out.clicks = 0;
+    out.ach = {};
+  }
+  // v2 -> v3: upgrades, supply lines, Dark Matter.
+  if (from < 3) {
+    out.run = num(out.total, 0);
+    out.made = {};
+    out.upgrades = {};
+    out.dm = 0;
+    out.dmTotal = 0;
+    out.dmUp = {};
+    out.ascends = 0;
+  }
+  // Add later migration steps here: if (from < 4) { ... }
+
+  out.made = Object.assign({}, fresh.made, out.made || {});
+  for (const id in out.made) out.made[id] = Math.max(0, num(out.made[id], 0));
+  out.upgrades = Object.assign({}, out.upgrades || {});
+  out.dmUp = Object.assign({}, out.dmUp || {});
+  for (const d of DM_UPGRADES) if (out.dmUp[d.id] != null) out.dmUp[d.id] = Math.min(d.max, Math.max(0, Math.floor(num(out.dmUp[d.id], 0))));
+  out.run = Math.max(0, num(out.run, 0));
+  out.dm = Math.max(0, Math.floor(num(out.dm, 0)));
+  out.dmTotal = Math.max(out.dm, Math.floor(num(out.dmTotal, 0)));
+  out.ascends = Math.max(0, Math.floor(num(out.ascends, 0)));
+
+  out.energy = Math.max(0, num(out.energy, 0));
+  out.total = Math.max(0, num(out.total, 0));
+  out.heat = Math.max(0, num(out.heat, 0));
+  out.played = Math.max(0, num(out.played, 0));
+  out.clicks = Math.max(0, num(out.clicks, 0));
+  out.ach = Object.assign({}, out.ach || {});
+  out.last = num(out.last, Date.now());
+  out.v = SAVE_VERSION;
+  return out;
+}
+function load() {
+  let raw = null;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {}
+  if (!raw) return;
+  try {
+    state = migrate(JSON.parse(raw));
+    state.heat = Math.min(state.heat, heatCapacity() * HEAT.maxRatio);
+    checkAchievements(); // quietly credit anything an old save already earned
+    const away = Math.min((Date.now() - state.last) / 1000, OFFLINE_CAP_SECONDS);
+    if (away > 5) {
+      const before = state.energy;
+      tick(away);
+      if (away > 60) showMsg(`Welcome back. Your swarm gathered ${fmt(state.energy - before)} W while you were away.`);
+    }
+  } catch (e) { state = newState(); }
+}
+function exportSave() {
+  save();
+  const text = btoa(JSON.stringify(state));
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => showMsg('Save copied to clipboard.'), () => prompt('Copy your save:', text));
+  else prompt('Copy your save:', text);
+}
+function importSave() {
+  const text = prompt('Paste your save:');
+  if (!text) return;
+  try {
+    state = migrate(JSON.parse(atob(text.trim())));
+    state.heat = Math.min(state.heat, heatCapacity() * HEAT.maxRatio);
+    checkAchievements();
+    save();
+    showMsg('Save imported.');
+  }
+  catch (e) { showMsg('That save is not valid.'); }
+}
+function hardReset() {
+  if (!confirm('Delete all progress?')) return;
+  state = newState();
+  save();
+}
+
+// =====================================================================
+// UI
+// =====================================================================
+const $ = id => document.getElementById(id);
+const rows = {};
+const statEls = {};
+const achEls = {};
+const upEls = {};
+const dmEls = {};
+const UPGRADES_BY_COST = UPGRADES.slice().sort((a, b) => a.cost - b.cost);
+let msgTimer = null;
+
+// Stats panel rows. Add a stat by adding a line here.
+const STATS = [
+  { id:'total',   label:'Total energy generated', value:() => fmt(state.total) + ' W' },
+  { id:'run',     label:'Energy this run',        value:() => fmt(state.run) + ' W' },
+  { id:'played',  label:'Time played',            value:() => fmtTime(state.played) },
+  { id:'gens',    label:'Energy buildings owned', value:() => ownedCount(b => b.rate > 0) },
+  { id:'rads',    label:'Radiators owned',        value:() => ownedCount(b => b.cool > 0) },
+  { id:'haul',    label:'Transport ships owned',  value:() => ownedCount(b => b.haul > 0) },
+  { id:'ups',     label:'Upgrades bought',        value:() => UPGRADES.filter(u => state.upgrades[u.id]).length + ' / ' + UPGRADES.length },
+  { id:'dm',      label:'Dark Matter earned',     value:() => fmt(state.dmTotal) + ' (x' + dmMult().toFixed(2) + ' output)' },
+  { id:'asc',     label:'Ascensions',             value:() => state.ascends },
+  { id:'clicks',  label:'Manual collections',     value:() => state.clicks },
+  { id:'achs',    label:'Achievements',           value:() => ACHIEVEMENTS.filter(a => state.ach[a.id]).length + ' / ' + ACHIEVEMENTS.length },
+];
+
+function showMsg(t) {
+  $('msg').textContent = t;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => { $('msg').textContent = ''; }, 6000);
+}
+function pct(mult) { return '+' + Math.round((mult - 1) * 100) + '%'; }
+// Plain-language text for an effect, e.g. "Solar Collector energy output x3" or "Heat made -20%".
+function effectText(e, levels) {
+  const m = Math.pow(e.mult, levels || 1);
+  const amount = m >= 1 ? 'x' + (+m.toFixed(2)) : '-' + Math.round((1 - m) * 100) + '%';
+  const what = e.type === 'rate' ? (e.target ? BY_ID[e.target].name : 'All') + ' ' + EFFECT_LABEL.rate : EFFECT_LABEL[e.type];
+  return what + ' ' + amount;
+}
+function groupOf(b) { return b.cool ? 'Cooling' : b.haul ? 'Logistics' : 'Energy'; }
+function upgradeRow(cls) {
+  const el = document.createElement('div');
+  el.className = cls;
+  el.innerHTML = '<div><div class="uname"></div><div class="ueffect"></div><div class="udesc"></div></div><button></button>';
+  return { el, name: el.querySelector('.uname'), effect: el.querySelector('.ueffect'), desc: el.querySelector('.udesc'), btn: el.querySelector('button') };
+}
+
+function spawnFloat(e, text) {
+  const wrap = $('collect-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-num';
+  el.textContent = text;
+  const x = (e && e.clientX) ? (e.clientX - rect.left) : (rect.width / 2 + (Math.random() - 0.5) * 60);
+  const y = (e && e.clientY) ? (e.clientY - rect.top) : (rect.height / 2);
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 750);
+}
+
+function buildUI() {
+  const modes = $('modes');
+  for (const m of [1, 10, 100, 'max']) {
+    const btn = document.createElement('button');
+    btn.textContent = m === 'max' ? 'Max' : 'x' + m;
+    btn.onclick = () => { buyMode = m; render(); };
+    btn.dataset.mode = m;
+    modes.appendChild(btn);
+  }
+  let group = null;
+  for (const b of BUILDINGS) {
+    if (groupOf(b) !== group) {
+      group = groupOf(b);
+      const head = document.createElement('div');
+      head.className = 'group';
+      head.textContent = group;
+      $('list').appendChild(head);
+    }
+    const row = document.createElement('div');
+    row.className = b.cool ? 'row cooler' : b.haul ? 'row hauler' : 'row';
+    row.innerHTML = '<div class="info"><div class="name"></div><div class="meta"></div></div><div class="own"></div><button></button>';
+    const btn = row.querySelector('button');
+    const ownEl = row.querySelector('.own');
+    btn.onclick = () => {
+      const before = state.owned[b.id];
+      buy(b);
+      if (state.owned[b.id] > before) {
+        row.classList.remove('bought');
+        void row.offsetWidth;
+        row.classList.add('bought');
+        ownEl.classList.add('bump');
+        setTimeout(() => ownEl.classList.remove('bump'), 180);
+      }
+      render();
+    };
+    $('list').appendChild(row);
+    rows[b.id] = { row, name: row.querySelector('.name'), meta: row.querySelector('.meta'), own: ownEl, btn };
+    rows[b.id].name.textContent = b.name;
+  }
+  for (const s of STATS) {
+    const el = document.createElement('div');
+    el.className = 'stat';
+    el.innerHTML = '<span></span><span></span>';
+    const spans = el.querySelectorAll('span');
+    spans[0].textContent = s.label;
+    statEls[s.id] = spans[1];
+    $('stats').appendChild(el);
+  }
+  for (const a of ACHIEVEMENTS) {
+    const el = document.createElement('div');
+    el.className = 'ach';
+    el.innerHTML = '<div><div class="aname"></div><div class="adesc"></div></div><div class="abonus"></div>';
+    el.querySelector('.aname').textContent = a.name;
+    el.querySelector('.adesc').textContent = a.desc;
+    el.querySelector('.abonus').textContent = pct(a.bonus.mult) + ' ' + BONUS_LABEL[a.bonus.type];
+    achEls[a.id] = el;
+    $('achs').appendChild(el);
+  }
+  $('tier-badge').textContent = TIER_LABEL;
+  for (const u of UPGRADES_BY_COST) {
+    const r = upgradeRow('up');
+    r.name.textContent = u.name;
+    r.effect.textContent = effectText(u.effect);
+    r.desc.textContent = u.desc;
+    r.btn.textContent = 'Buy | ' + fmt(u.cost);
+    r.btn.onclick = () => { if (buyUpgrade(u)) showMsg(u.name + ' bought: ' + effectText(u.effect) + '.'); render(); };
+    upEls[u.id] = r;
+    $('upgrades').appendChild(r.el);
+  }
+  for (const d of DM_UPGRADES) {
+    const r = upgradeRow('up dm');
+    r.desc.textContent = d.desc;
+    r.btn.onclick = () => { if (buyDmUpgrade(d)) showMsg(d.name + ' is now level ' + state.dmUp[d.id] + '.'); render(); };
+    dmEls[d.id] = r;
+    $('dmups').appendChild(r.el);
+  }
+  $('ascend').onclick = () => {
+    const g = dmGain();
+    if (g < 1) return;
+    if (!confirm('Ascend for ' + fmt(g) + ' Dark Matter? This resets energy, buildings, heat, and upgrades.')) return;
+    if (ascend()) { save(); showMsg('Ascended. +' + fmt(g) + ' Dark Matter.'); }
+    render();
+  };
+  $('heatmark').style.left = (100 / HEAT.maxRatio) + '%'; // marks capacity on the bar
+  $('collect').onclick = (e) => {
+    const gained = clickPower();
+    click();
+    spawnFloat(e, '+' + fmt(gained) + ' W');
+    render();
+  };
+  $('export').onclick = exportSave;
+  $('import').onclick = () => { importSave(); render(); };
+  $('reset').onclick = () => { hardReset(); render(); };
+}
+
+function render() {
+  const t = throttle();
+  $('energy').textContent = fmt(state.energy) + ' W';
+  $('eps').textContent = fmt(totalRate()) + ' W/s' + (t < 1 ? ' (of ' + fmt(rawRate()) + ')' : '');
+  $('collect').textContent = 'Collect Sunlight (+' + fmt(clickPower()) + ')';
+
+  // Heat bar: full width is capacity * maxRatio, the white mark is capacity.
+  const cap = heatCapacity();
+  const ratio = state.heat / cap;
+  const fill = $('heatfill');
+  fill.style.width = Math.min(100, ratio / HEAT.maxRatio * 100) + '%';
+  fill.className = ratio > 1 ? 'hot' : ratio > 0.75 ? 'warm' : '';
+  $('heattext').textContent = fmt(state.heat) + ' / ' + fmt(cap) + ' (' + Math.round(ratio * 100) + '%)';
+  $('heatflow').textContent = 'Making ' + fmt(heatGen()) + ' heat/s at full output | Cooling ' + fmt(heatCool()) + ' heat/s';
+  const status = $('heatstatus');
+  status.className = t < 1 ? 'hot' : '';
+  status.textContent = t < 1 ? 'Overheating: output throttled to ' + Math.round(t * 100) + '%. Build radiators.'
+    : heatGen() > heatCool() ? 'Heat is rising. Output will throttle past capacity.' : 'Heat is under control.';
+
+  for (const btn of $('modes').children) btn.classList.toggle('on', btn.dataset.mode == buyMode);
+  for (const b of BUILDINGS) {
+    const r = rows[b.id];
+    const n = amountFor(b);
+    const cost = costFor(b, n);
+    const owned = state.owned[b.id];
+    const nm = nextMilestone(owned);
+    const mm = milestoneMult(owned);
+    const made = Math.floor(state.made[b.id] || 0);
+    r.own.textContent = owned + (made > 0 ? ' +' + fmt(made) : '');
+    // Per-unit numbers include upgrades, so buying one visibly changes the row it affects.
+    let what = b.cool ? '-' + fmt(b.cool * mm * effectMult('cool')) + ' heat/s, +' + fmt(b.cap * mm) + ' capacity each'
+      : b.haul ? 'Moves ' + fmt(b.haul * mm * effectMult('haul')) + ' cargo/s each'
+      : fmt(b.rate * mm * effectMult('rate', b.id)) + ' W/s, +' + fmt((b.heat || 0) * effectMult('heat')) + ' heat/s each';
+    if (b.feed) what += ' | Builds ' + fmt(b.feed.rate) + ' ' + BY_ID[b.feed.to].name + '/s each (uses ' + fmt(b.feed.rate * b.feed.cargo) + ' cargo/s)';
+    r.meta.textContent = b.desc + ' ' + what + (nm ? ' | x2 at ' + nm : '');
+    r.btn.textContent = 'Buy ' + n + ' | ' + fmt(cost);
+    r.btn.disabled = state.energy < cost;
+  }
+
+  // Supply lines
+  const dem = feedDemand(), hcap = haulCapacity(), eff = feedEfficiency();
+  $('logistatus').textContent = dem === 0 ? 'idle' : hcap === 0 ? 'no transport' : Math.round(eff * 100) + '% supplied';
+  $('logitext').textContent = dem === 0 ? 'Mass Drivers, Asteroid Miners, and Disassemblers build lower-tier units for free once you have transport.'
+    : hcap === 0 ? 'Supply lines need ' + fmt(dem) + ' cargo/s. Buy a Cargo Tug to start them.'
+    : 'Need ' + fmt(dem) + ' cargo/s | Transport ' + fmt(hcap) + ' cargo/s' + (t < 1 ? ' | slowed by heat' : '');
+
+  // Upgrades: list the cheapest few that are not bought yet.
+  let shown = 0, bought = 0;
+  for (const u of UPGRADES_BY_COST) {
+    const r = upEls[u.id];
+    const has = !!state.upgrades[u.id];
+    if (has) bought++;
+    const show = !has && shown < UPGRADES_SHOWN;
+    if (show) shown++;
+    r.el.style.display = show ? '' : 'none';
+    r.btn.disabled = state.energy < u.cost;
+  }
+  $('upnote').textContent = bought + ' of ' + UPGRADES.length + ' bought' + (shown === 0 ? '. All upgrades owned.' : '.');
+
+  // Ascend and Dark Matter
+  const gain = dmGain();
+  $('dmtext').innerHTML = 'Dark Matter: <b>' + fmt(state.dm) + '</b> to spend, <b>' + fmt(state.dmTotal) + '</b> earned in total. '
+    + 'Each one earned adds ' + pct(1 + PRESTIGE.bonusPer) + ' energy output (now x' + dmMult().toFixed(2) + ').';
+  $('ascend').disabled = gain < 1;
+  $('ascend').textContent = gain >= 1 ? 'Ascend for +' + fmt(gain) + ' Dark Matter'
+    : 'Ascend: ' + fmt(state.run) + ' / ' + fmt(PRESTIGE.base) + ' W made this run';
+  for (const d of DM_UPGRADES) {
+    const r = dmEls[d.id];
+    const lvl = state.dmUp[d.id] || 0;
+    r.name.textContent = d.name + ' (level ' + lvl + ' / ' + d.max + ')';
+    r.effect.textContent = effectText(d.effect) + ' per level' + (lvl > 0 ? ' (now ' + effectText(d.effect, lvl) + ')' : '');
+    r.btn.textContent = lvl >= d.max ? 'Maxed' : 'Buy | ' + fmt(dmCost(d)) + ' DM';
+    r.btn.disabled = lvl >= d.max || state.dm < dmCost(d);
+  }
+
+  for (const s of STATS) statEls[s.id].textContent = s.value();
+  for (const a of ACHIEVEMENTS) achEls[a.id].classList.toggle('done', !!state.ach[a.id]);
+}
+
+// =====================================================================
+// MAIN LOOP
+// =====================================================================
+let lastFrame = Date.now();
+function loop() {
+  const now = Date.now();
+  const dt = Math.min((now - lastFrame) / 1000, 1);
+  lastFrame = now;
+  tick(dt);
+  state.played += dt;
+  const earned = checkAchievements();
+  if (earned.length) showMsg('Achievement unlocked: ' + earned.join(', '));
+  render();
+}
+
+buildUI();
+load();
+render();
+setInterval(loop, 100);
+setInterval(save, 10000);
+window.addEventListener('beforeunload', save);
+</script>
+</body>
+</html>
