@@ -43,6 +43,21 @@ w.document.querySelectorAll('#modes button')[3].click();
 btns[0].click();
 ok(G.state.owned.collector > 50 && G.state.energy >= 0, 'max buy');
 
+// ---- tabs and group chips ----
+const views = () => [...w.document.querySelectorAll('.view')].filter(v => !v.hidden).map(v => v.dataset.view).join();
+const tabBtns = w.document.querySelectorAll('#tabs button');
+ok(views() === 'build' && tabBtns.length === 4, 'starts on the Build tab');
+tabBtns[1].click(); ok(views() === 'upgrades', 'Upgrades tab');
+tabBtns[2].click(); ok(views() === 'ascend', 'Ascend tab');
+tabBtns[3].click(); ok(views() === 'stats', 'Stats tab');
+tabBtns[0].click();
+const boxes = () => [...w.document.querySelectorAll('.groupbox')].map(b => b.hidden ? 0 : b.querySelectorAll('.row').length).join();
+ok(boxes() === '6,0,0', 'Energy group shown first');
+w.document.querySelectorAll('#groups button')[1].click(); ok(boxes() === '0,3,0', 'Cooling chip');
+w.document.querySelectorAll('#groups button')[2].click(); ok(boxes() === '0,0,2', 'Logistics chip');
+G.state.energy = 1e4; G.render();
+ok(tabBtns[1].querySelector('.tbadge').textContent === '3', 'Upgrades tab counts affordable upgrades');
+
 // ---- heat ----
 G.state.owned.disassembler = 50; G.tick(600);
 ok(Math.abs(G.throttle() - G.HEAT.minThrottle) < 1e-9 && G.totalRate() > 0, 'overheat floors at minThrottle, never stops');

@@ -8,6 +8,7 @@
 - Upgrades: 14 one-time purchases in the `UPGRADES` table. Each row shows a generated line that says exactly what it changes, and building rows show per-unit numbers with upgrades included. Lost on Ascend.
 - M3: Tier 3 logistics, built as supply lines instead of a plain transport cap. Mass Drivers build Swarm Satellites, Asteroid Miners build Mass Drivers, Disassemblers build Miners. This needs transport from Cargo Tugs and Bulk Freighters. With too little transport every line slows by the same share. With none, nothing is built. Supplied units make energy and heat, but do not raise prices or count toward x2 milestones. Tuned by `feed` and `haul` fields in `BUILDINGS`.
 - M4: Ascend. Resets energy, buildings, heat, and upgrades for Dark Matter. Every Dark Matter earned adds +5% output forever. Dark Matter also buys permanent upgrades (`DM_UPGRADES`): less heat made, more cooling, more transport. Tuned in `PRESTIGE`.
+- Phone layout: bottom tab bar (Build, Upgrades, Ascend, Stats) so only one section is on screen at a time. Build tab has Energy / Cooling / Logistics chips. Tabs show a badge when something is affordable, chips show a red dot when that area needs attention. On phones the HUD is compact and sticks to the top, rows are short (tap a row for full details), buttons are at least 48px tall, and messages are a toast above the tab bar. Tabs are data (`TABS`, `GROUPS` in the UI section). No save change.
 - SAVE_VERSION is 3. v1 and v2 saves migrate.
 - `tests/smoke.js` covers all of the above.
 
@@ -16,6 +17,7 @@
 - M6: Polish and balance
 
 ## Known bugs
+- Phone layout was checked with Chrome screenshots at iPhone size (390x844), not on a real iPhone. Sticky HUD and safe-area spacing need a real-device check.
 - None known. The automated test passes, but M3, M4, and upgrades have not been play tested by a person in a real browser yet.
 - Fonts load from Google Fonts, so the file is not fully self-contained. Offline it falls back to system fonts and still works.
 
