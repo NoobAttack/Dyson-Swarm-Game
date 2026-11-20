@@ -23,7 +23,7 @@ Progress saves in the browser. You can export and import saves from the Stats ta
 
 ## Under the hood
 
-The game is a single `index.html` with five sections, in order: data, state, engine, save, UI, and main loop.
+The game is a single `index.html` with six sections, in order: data, state, engine, save, UI, and main loop.
 
 - Content is data. Buildings, upgrades, achievements, and Dark Matter upgrades are tables at the top of the script, so adding one means adding a row.
 - All production uses delta time. Offline progress runs the same simulation as live play, in larger steps, and a test checks that the two agree.
