@@ -2,7 +2,9 @@
 
 An idle game about building a Dyson swarm, starting with a single rooftop solar panel. It plays like AdVenture Capitalist, except each tier adds a rule of its own instead of just bigger numbers.
 
-It's one HTML file with no dependencies and no build step. Open `index.html` and play. It works on desktop and phones.
+**[Play it in your browser](https://noobattack.github.io/Dyson-Swarm-Game/)**
+
+It's one HTML file with no dependencies and no build step. You can also download `index.html` and open it directly. It works on desktop and phones.
 
 <p>
   <img src="docs/build.png" width="23%" alt="Build tab">
