@@ -16,7 +16,7 @@ function boot(saved, errs = []) {
   w.eval(html.match(/<script>([\s\S]*)<\/script>/)[1] + `
   window.G = { get state() { return state; }, set state(v) { state = v; }, tick, buy, render, save, loop, click,
     throttle, totalRate, rawRate, heatGen, heatCool, heatCapacity, haulCapacity, feedDemand, feedEfficiency,
-    buyUpgrade, buyDmUpgrade, ascend, dmGain, dmMult, effectMult, importSave, hardReset,
+    thermalOutlook, simulateAway, showAway, buyUpgrade, buyDmUpgrade, ascend, dmGain, dmMult, effectMult, importSave, hardReset,
     BUILDINGS, UPGRADES, DM_UPGRADES, HEAT, PRESTIGE, SAVE_VERSION };`);
   return w;
 }
@@ -64,6 +64,39 @@ ok(Math.abs(G.throttle() - G.HEAT.minThrottle) < 1e-9 && G.totalRate() > 0, 'ove
 ok(G.state.heat <= G.heatCapacity() * G.HEAT.maxRatio + 1e-6, 'heat is clamped');
 G.state.owned.droplet = 400; G.tick(3600);
 ok(G.state.heat === 0 && G.throttle() === 1, 'enough radiators cool to zero');
+
+// ---- thermal clarity ----
+{
+  const w6 = boot(null), G6 = w6.G, d6 = w6.document;
+  G6.state.owned.collector = 8; G6.state.energy = 1e6; G6.render();
+  const o = G6.thermalOutlook();
+  ok(o.safe === (o.g <= o.c) && o.out === 1, 'outlook: small swarm is safe');
+  const prev = () => d6.querySelectorAll('#list .row .prev')[0];
+  ok(/Buy 1: \+0\.50 heat\/s/.test(prev().textContent) && /still safe/.test(prev().textContent), 'row preview shows heat added and stays safe');
+  G6.state.owned.collector = 9; G6.render();   // 9 x 0.5 = 4.5 <= 5 cooling, 10 would be 5: still safe, 11 is not
+  d6.querySelectorAll('#modes button')[1].click();   // x10
+  ok(/START overheating/.test(prev().textContent) && /hot|warn/.test(prev().className), 'row preview warns before a purchase crosses into overheating');
+  const before = G6.thermalOutlook();
+  G6.state.owned.collector = 19;
+  const after = G6.thermalOutlook();
+  ok(!after.safe && after.out < 1 && after.settled <= G6.rawRate() && before.safe, 'outlook: too much heat settles at reduced output');
+  G6.render();
+  ok(/will settle at \d+% of capacity/.test(d6.getElementById('heatverdict').textContent), 'HUD verdict explains where heat settles');
+  ok(d6.getElementById('heatsettle').style.display === 'block', 'settle marker shown when heat will exceed cooling');
+  ok(d6.querySelectorAll('#thermbreak .trow').length === G6.BUILDINGS.filter(b => b.heat).length && /Solar Collector/.test(d6.getElementById('thermbreak').textContent), 'heat breakdown lists heat makers');
+  ok(/Radiator Fin/.test(d6.getElementById('thermverdict').textContent), 'thermal panel suggests how many radiators');
+  G6.state.energy = 1e9; G6.state.owned.fin = 50; G6.render();
+  const rp = [...d6.querySelectorAll('#list .row .prev')][6];
+  ok(/cooling\/s/.test(rp.textContent), 'radiator preview shows cooling added');
+  // supply lines panel
+  ok(/No supply lines running/.test(d6.getElementById('supverdict').textContent), 'supply panel explains idle state');
+  G6.state.owned.driver = 100; G6.render();
+  ok(/Stopped/.test(d6.getElementById('supverdict').textContent) && /Cargo Tug/.test(d6.getElementById('supverdict').textContent), 'supply panel says transport is missing');
+  G6.state.owned.tug = 1; G6.render();
+  ok(/Transport is short/.test(d6.getElementById('supverdict').textContent) && /Cargo Tug/.test(d6.getElementById('supverdict').textContent), 'supply panel says how much transport to add');
+  G6.state.owned.tug = 500; G6.render();
+  ok(/Fully supplied/.test(d6.getElementById('supverdict').textContent) && /Swarm Satellite/.test(d6.getElementById('suplines').textContent), 'supply panel shows full supply and per-line output');
+}
 
 // ---- upgrades ----
 G.state.energy = 1e12;
@@ -124,7 +157,22 @@ ok(JSON.stringify(w2.G.state.owned) === JSON.stringify(G.state.owned) && w2.G.st
 const v1 = JSON.stringify({ v: 1, energy: 5000, total: 90000, owned: { collector: 30, mirror: 12, satellite: 3, driver: 0, miner: 0, disassembler: 0 }, last: Date.now() - 3600e3 });
 let w3 = boot(v1, errs), G3 = w3.G;
 ok(G3.state.v === G3.SAVE_VERSION && finite(G3.state) && G3.state.owned.fin === 0 && G3.state.energy > 5000 && G3.state.run >= 90000, 'v1 save migrates with offline progress');
-ok(/Welcome back/.test(w3.document.getElementById('msg').textContent), 'welcome back message');
+const away3 = w3.document.getElementById('away');
+ok(!away3.hidden && /Welcome back/.test(away3.textContent) && /1h 0m/.test(away3.textContent) && /collected while you were gone/.test(away3.textContent), 'welcome back screen shows time away and earnings');
+away3.querySelector('#awayok').click();
+ok(away3.hidden, 'welcome back screen closes');
+{ // a long absence while the page stays open is reported too
+  const w5 = boot(null), G5 = w5.G;
+  G5.state.owned.collector = 20; G5.state.energy = 0;
+  const r = G5.simulateAway(3 * 24 * 3600);
+  ok(r.capped && r.counted === 8 * 3600 && r.gained > 0 && Math.abs(r.gained - G5.state.energy) < 1e-6, 'away report is capped at 8h and matches energy gained');
+  G5.showAway(r);
+  const t5 = w5.document.getElementById('away').textContent;
+  ok(/3d 0h 0m/.test(t5) && /Offline progress stops after 8h/.test(t5), 'welcome back screen notes the cap');
+  G5.state.owned.collector = 0; G5.state.owned.disassembler = 3;
+  const r2 = G5.simulateAway(3600); G5.showAway(r2);
+  ok(r2.overheated && /overheating/i.test(w5.document.getElementById('away').textContent), 'welcome back screen warns about overheating');
+}
 const v2 = JSON.stringify({ v: 2, energy: 123, total: 5e6, owned: { collector: 60, mirror: 30, satellite: 10, driver: 4, miner: 0, disassembler: 0, fin: 20, heatpipe: 3, droplet: 0 }, heat: 50, played: 999, clicks: 77, ach: { hands: true, swarm: true }, last: Date.now() });
 let w4 = boot(v2, errs), G4 = w4.G;
 ok(G4.state.v === G4.SAVE_VERSION && finite(G4.state) && G4.state.owned.fin === 20 && G4.state.owned.tug === 0 && G4.state.run === 5e6
